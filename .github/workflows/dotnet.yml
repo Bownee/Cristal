@@ -1,0 +1,35 @@
+name: .NET CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  dotnet:
+    name: Restore, Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: "10.0.x"
+
+    - name: NuGet Packages
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Test
+      run: dotnet test --no-build --configuration Release --verbosity normal
+
+    - name: Publish Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-build
+        path: .

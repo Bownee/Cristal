@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/workflows/">
+    <File Path=".github/workflows/deploy-production.yml" />
+    <File Path=".github/workflows/deploy-staging.yml" />
+    <File Path=".github/workflows/dotnet.yml" />
+  </Folder>
+  <Project Path="Api/Api.csproj" />
+</Solution>

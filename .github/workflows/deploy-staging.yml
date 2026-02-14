@@ -1,0 +1,77 @@
+name: Deploy To Staging
+
+on:
+  workflow_run:
+    workflows: [".NET CI"]
+    types:
+      - completed
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  staging-release:
+    name: Deploy To Staging
+    runs-on: ubuntu-latest
+    environment:
+      name: Staging
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0
+      with:
+        versionSpec: '5.x'
+
+    - name: Determine Version
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v0
+
+    - name: Display SemVer
+      run: |
+        echo "SemVer: ${{ steps.gitversion.outputs.semVer }}"
+        echo "Docker Tag: ${{ steps.gitversion.outputs.semVer }}"
+
+    - name: Create and Push Tag
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git tag v${{ steps.gitversion.outputs.semVer }}
+        git push origin v${{ steps.gitversion.outputs.semVer }}
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set lowercase repository name
+      run: echo "IMAGE_NAME=${IMAGE_NAME,,}" >> $GITHUB_ENV
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Api/Dockerfile
+        push: true
+        build-args: |
+          VERSION=${{ steps.gitversion.outputs.semVer }}
+        tags: |
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.gitversion.outputs.semVer }}
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.gitversion.outputs.semVer }}
+        name: Release v${{ steps.gitversion.outputs.semVer }}
+        generate_release_notes: true
+        prerelease: true # ${{ contains(steps.gitversion.outputs.semVer, '-') }}

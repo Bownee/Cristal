@@ -1,0 +1,51 @@
+# .github/workflows/deploy-prod.yml
+name: Deploy to Production
+
+on:
+  release:
+    types: [released] # Triggers when you promote a Pre-release to a full Release
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  promote-to-prod:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Log in to the Container registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Pull, Retag, and Push
+      run: |
+        # 1. Get the version from the Release Tag
+        # The Release Tag usually has a 'v' (v1.0.0), but Docker usually doesn't (1.0.0).
+        # We strip the 'v' prefix here.
+        RAW_TAG=${{ github.event.release.tag_name }}
+        VERSION=${RAW_TAG#v}
+
+        echo "Promoting Version: $VERSION to Production"
+
+        # 2. Pull the specific version created in Staging
+        docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION
+        
+        # 3. Retag it as "production" and "latest"
+        docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production
+        docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION
+        
+        # 4. Push the new tags
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:production
+        docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION
+
+    - name: Trigger Deployment
+      run: echo "Deployment triggered for release ${{ github.event.release.tag_name }}"
