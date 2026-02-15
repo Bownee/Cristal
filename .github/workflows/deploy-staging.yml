@@ -5,6 +5,8 @@ on:
     workflows: [".NET CI"]
     types:
       - completed
+    pull_request:
+      branches: []
 
 env:
   REGISTRY: ghcr.io
@@ -21,6 +23,14 @@ jobs:
       packages: write
 
     steps:
+    - name: Download Build Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: app-build
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        run-id: ${{ github.event.workflow_run.id }}
+        path: ./publish
+
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0

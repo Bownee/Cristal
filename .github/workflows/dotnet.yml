@@ -29,3 +29,13 @@ jobs:
 
     - name: Test
       run: dotnet test --no-build --configuration Release --verbosity normal
+
+    - name: Publish Test Results
+      run: dotnet publish "./Api.csproj" --no-restore --no-build --configuration Release --output ./publish -p:UseAppHost=false -p:IncludeSourceRevisionInInformationalVersion=false -p:Version=$VERSION
+
+    - name: Publish Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-build
+        path: ./publish
+        retention-days: 5
