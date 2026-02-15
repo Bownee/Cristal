@@ -1,12 +1,11 @@
 name: Deploy To Staging
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: [".NET CI"]
-    types:
-      - completed
-    pull_request:
-      branches: []
+    types: [completed]
+    branches: [main]
 
 env:
   REGISTRY: ghcr.io
@@ -16,8 +15,8 @@ jobs:
   staging-release:
     name: Deploy To Staging
     runs-on: ubuntu-latest
-    environment:
-      name: Staging
+    # environment:
+    #   name: Staging
     permissions:
       contents: write
       packages: write
@@ -36,9 +35,9 @@ jobs:
         fetch-depth: 0
 
     - name: Install GitVersion
-      uses: gittools/actions/gitversion/setup@v0
+      uses: gittools/actions/gitversion/setup@v4.2.0
       with:
-        versionSpec: '5.x'
+        versionSpec: "6.x"
 
     - name: Determine Version
       id: gitversion
@@ -51,10 +50,17 @@ jobs:
 
     - name: Create and Push Tag
       run: |
+        BRANCH_SUFFIX=""
+        if [[ "${{ github.ref_name }}" != "main" ]]; then
+          BRANCH_SUFFIX="-${{ github.ref_name }}"
+        fi
+        
+        TAG_NAME="v${{ steps.gitversion.outputs.semVer }}${BRANCH_SUFFIX//\//-}"
+        
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
-        git tag v${{ steps.gitversion.outputs.semVer }}
-        git push origin v${{ steps.gitversion.outputs.semVer }}
+        git tag $TAG_NAME
+        git push origin $TAG_NAME
 
     - name: Log in to the Container registry
       uses: docker/login-action@v3
@@ -84,4 +90,4 @@ jobs:
         tag_name: v${{ steps.gitversion.outputs.semVer }}
         name: Release v${{ steps.gitversion.outputs.semVer }}
         generate_release_notes: true
-        prerelease: true # ${{ contains(steps.gitversion.outputs.semVer, '-') }}
+        prerelease: true # ${{ contains(steps.gitversion.outputs.semVer, "-") }}

@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/workflows/">
+    <File Path=".github/GitVersion.yml" />
+    <File Path=".github/release.yml" />
     <File Path=".github/workflows/deploy-production.yml" />
     <File Path=".github/workflows/deploy-staging.yml" />
     <File Path=".github/workflows/dotnet.yml" />

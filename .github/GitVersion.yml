@@ -1,0 +1,13 @@
+# GitVersion.yml
+mode: ContinuousDelivery
+branches:
+  main:
+    # regex: ^main$
+    tag: rc        # Change this to 'rc' when you are near release
+    # increment: Minor
+    # prevent-increment-of-merged-server-version: false
+    # track-merge-target: false
+  feature:
+    regex: ^feature?[/-]
+    tag: useBranchName
+    # increment: Inherit
